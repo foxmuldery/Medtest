@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医学考试系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .home-menu {
+            text-align: center;
+            padding: 20px;
+        }
+        .menu-btn {
+            display: block;
+            width: 200px;
+            margin: 10px auto;
+            padding: 15px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .menu-btn:hover {
+            background-color: #45a049;
+        }
+        .options label {
+            display: block;
+            margin: 10px 0;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .options label:hover {
+            background-color: #f8f9fa;
+        }
+
+        .question h3 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .options input[type="radio"] {
+            margin-right: 10px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .correct {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .incorrect {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .home-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .summary {
+            text-align: center;
+            padding: 20px;
+        }
+        .summary h2 {
+            color: #333;
+        }
+        .summary .stats {
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 10px;
+            }
+            .btn {
+                width: 100%;
+                margin: 5px 0;
+            }
+            .home-btn {
+                position: static;
+                margin-bottom: 10px;
+            }
+        }
+        .clear-cache-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #999;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+
+        .clear-cache-btn:hover {
+            opacity: 1;
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        @media (max-width: 600px) {
+            .clear-cache-btn {
+                bottom: 10px;
+                right: 10px;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <button class="btn home-btn" onclick="showHome()">返回主页</button>
+        <div id="homeMenu" class="home-menu">
+            <h1>医学考试系统</h1>
+            <button class="menu-btn" onclick="startRandomMode()">随机模式</button>
+            <button class="menu-btn" onclick="startWrongMode()">错题模式</button>
+        </div>
+        <div id="quizContent" style="display: none;">
+            <h1>医学考试系统</h1>
+            <div id="questionContainer" class="question"></div>
+            <button id="prev" class="btn" onclick="prevQuestion()">上一题</button>
+            <button id="next" class="btn" onclick="nextQuestion()">下一题</button>
+            <button id="submit" class="btn" onclick="showSummary()" style="display:none;">查看总结</button>
+        </div>
+        <button id="clearCache" class="clear-cache-btn" onclick="clearAllCache()">清除缓存</button>
+    </div>
+
+
+    <script>
+        const questions = [
+        {
+    id: 1,
+    question: "2005心肺复苏指南中胸外按压的频率为",
+    options: ["80-100次/分", "100次/分", "120次/分", "60-80次/分"],
+    answer: "B",
+    explanation: "2005心肺复苏指南规定胸外按压频率为100次/分"
+},
+{
+    id: 2,
+    question: "成人胸外按压的部位是",
+    options: ["剑突", "胸骨中下1/3交界处", "胸骨上段", "心尖搏动处"],
+    answer: "B",
+    explanation: "成人胸外按压应在胸骨中下1/3交界处进行"
+},
+{
+    id: 3,
+    question: "成人胸外按压的深度为",
+    options: ["2-3cm", "3-4cm", "4-5cm", "5-6cm"],
+    answer: "C",
+    explanation: "成人胸外按压的标准深度为4-5cm"
+},
+{
+    id: 4,
+    question: "单人徒手心肺复苏的按压与人工呼吸比例为",
+    options: ["30:2", "15:2", "5:1", "2:15"],
+    answer: "A",
+    explanation: "标准单人CPR的按压与通气比例为30:2"
+},
+{
+    id: 5,
+    question: "对于溺水病人的心肺复苏，首先应进行",
+    options: ["胸外按压", "人工呼吸", "清除呼吸道异物", "建立静脉通道"],
+    answer: "B",
+    explanation: "溺水病人首先需要进行人工呼吸"
+},
+{
+    id: 6,
+    question: "心脏按压的频率、深度标准错误的是",
+    options: ["按压与放松时间相等", "按压深度4-5cm", "按压频率100次/分", "掌根着力"],
+    answer: "A",
+    explanation: "按压时间应占循环周期的1/2，放松时间应略长"
+},
+{
+    id: 7,
+    question: "心肺复苏时，判断患者是否存在自主呼吸的方法是",
+    options: ["看胸廓起伏", "听吸气和呼气音", "感受面部呼气流动", "以上都是"],
+    answer: "D",
+    explanation: "看、听、感是判断呼吸的基本方法"
+},
+{
+    id: 8,
+    question: "以下哪项不是心脏骤停的临床表现",
+    options: ["突然倒地", "发绀", "瞳孔散大", "心率缓慢"],
+    answer: "D",
+    explanation: "心脏骤停时无心率，而不是心率缓慢"
+},
+{
+    id: 9,
+    question: "心肺复苏时，胸外按压与人工呼吸的次数比例应为",
+    options: ["4:1", "30:2", "15:2", "5:1"],
+    answer: "B",
+    explanation: "标准CPR的按压与通气比例为30:2"
+},
+{
+    id: 10,
+    question: "心肺复苏的有效指征不包括",
+    options: ["瞳孔缩小", "面色转红", "颈动脉搏动恢复", "血压下降"],
+    answer: "D",
+    explanation: "血压下降不是CPR有效的指征"
+},
+{
+    id: 11,
+    question: "成人心肺复苏时打开气道的最常用方式为",
+    options: ["仰头举颏法", "双手推举下颌法", "托颏法", "环状软骨压迫法"],
+    answer: "A",
+    explanation: "仰头举颏法是最常用的开放气道方式"
+},
+{
+    id: 12,
+    question: "关于徒手心肺复苏，下列哪项是错误的",
+    options: ["胸外心脏按压与人工呼吸比例30:2", "检查意识时间不超过10秒钟", "每次人工呼吸时间1秒钟", "每分钟胸外按压60-80次"],
+    answer: "D",
+    explanation: "标准按压频率应为100次/分"
+},
+{
+    id: 13,
+    question: "心肺复苏时，判定人工呼吸正确的指征是",
+    options: ["胸廓膨隆", "听到气过声", "面色发绀消退", "以上都是"],
+    answer: "D",
+    explanation: "这些都是有效通气的表现"
+},
+{
+    id: 14,
+    question: "心肺复苏时，检查颈动脉搏动的时间不应超过",
+    options: ["5秒钟", "10秒钟", "15秒钟", "20秒钟"],
+    answer: "B",
+    explanation: "检查颈动脉搏动时间不应超过10秒"
+},
+{
+    id: 15,
+    question: "危重病人的呼吸、循环功能发生严重障碍时，首先应建立",
+    options: ["静脉通道", "心电监护", "人工气道", "吸氧"],
+    answer: "C",
+    explanation: "确保气道通畅是首要任务"
+},
+{
+    id: 16,
+    question: "对溺水病人进行心肺复苏时，首先应",
+    options: ["清除口腔异物", "建立人工气道", "胸外心脏按压", "人工呼吸"],
+    answer: "A",
+    explanation: "溺水患者首先需清除口腔异物，确保气道通畅"
+},
+{
+    id: 17,
+    question: "心肺复苏时，每次吹气的气量应为",
+    options: ["400-600ml", "800-1200ml", "200-300ml", "1500-2000ml"],
+    answer: "A",
+    explanation: "标准通气量为400-600ml"
+},
+{
+    id: 18,
+    question: "急性呼吸心跳骤停的最早出现的表现是",
+    options: ["昏迷", "发绀", "瞳孔散大", "呼吸停止"],
+    answer: "A",
+    explanation: "意识丧失是最早出现的表现"
+},
+{
+    id: 19,
+    question: "心肺复苏时，胸外按压的姿势应该是",
+    options: ["双臂伸直", "肘关节弯曲", "身体前倾", "手指张开"],
+    answer: "A",
+    explanation: "双臂伸直可以利用上身重力进行按压"
+},
+{
+    id: 20,
+    question: "以下哪项不是判断心脏骤停的依据",
+    options: ["意识丧失", "瞳孔散大", "心音消失", "呼吸急促"],
+    answer: "D",
+    explanation: "心跳骤停时呼吸应停止而不是急促"
+},
+{
+    id: 21,
+    question: "18岁，晨卧床不起，人事不省，多汗，流涎，呼吸困难。体检：神志不清，双瞳孔缩小如针尖，双肺布满湿罗音，心率60次/分，肌束震颤，抽搐，最可能的诊断是",
+    options: ["急性安定中毒", "急性有机磷中毒", "急性一氧化碳中毒", "急性氯丙嗪中毒"],
+    answer: "B",
+    explanation: "典型的有机磷中毒表现：缩瞳、流涎、多汗、肌束震颤"
+},
+{
+    id: 22,
+    question: "女性，24岁，误服敌敌畏10ml半小时后昏迷来院，诊断急性有机磷中毒。下列哪项属烟碱样症状",
+    options: ["多汗", "肌纤维束颤动", "瞳孔缩小", "流涎"],
+    answer: "B",
+    explanation: "肌纤维束颤动是有机磷中毒的烟碱样症状"
+},
+{
+    id: 23,
+    question: "急性有机磷中毒洗胃时应采取的体位",
+    options: ["右侧卧位", "左侧卧位", "仰卧位", "俯卧位"],
+    answer: "B",
+    explanation: "左侧卧位可预防误吸，是洗胃的最佳体位"
+},
+{
+    id: 24,
+    question: "成人胃管插入的深度一般为",
+    options: ["40～45cm", "55～60cm", "45～55cm", "60cm以上"],
+    answer: "C",
+    explanation: "成人胃管插入深度一般在45～55cm"
+},
+{
+    id: 25,
+    question: "判断急性有机磷中毒患者洗胃是否彻底可参考",
+    options: ["洗胃液量", "洗出液是否澄清无味", "临床症状是否好转"],
+    answer: "B",
+    explanation: "洗胃是否彻底主要看洗出液是否澄清无味"
+},
+{
+    id: 26,
+    question: "异烟肼中毒时可用下列哪个药物拮抗",
+    options: ["VitB1", "VitB2", "VitB6", "VitB12"],
+    answer: "C",
+    explanation: "维生素B6是异烟肼中毒的特效解毒剂"
+},
+{
+    id: 27,
+    question: "有机磷中毒胆碱酯酶重活化剂使用时间",
+    options: ["1～3d", "3～5d", "5～7d", "根据中毒程度、症状好转及酶活力恢复情况使用"],
+    answer: "D",
+    explanation: "重活化剂使用时间需根据患者具体情况决定"
+},
+{
+    id: 28,
+    question: "海络因中毒时，解毒药首选",
+    options: ["洛贝林", "阿托品", "纳酪酮", "氟马西尼"],
+    answer: "C",
+    explanation: "纳洛酮是阿片类药物中毒的特效解毒剂"
+},
+{
+    id: 29,
+    question: "急性有机磷中毒发生肺水肿的治疗",
+    options: ["西地兰", "速尿", "甲强龙", "阿托品"],
+    answer: "D",
+    explanation: "阿托品可减少支气管分泌，缓解肺水肿"
+},
+{
+    id: 30,
+    question: "安定类药物中毒特效解毒剂是",
+    options: ["氟马西尼", "纳酪酮", "美解眠", "碳酸氢钠"],
+    answer: "A",
+    explanation: "氟马西尼是苯二氮卓类药物的特效拮抗剂"
+},
+{
+    id: 31,
+    question: "主要分泌神经毒素的毒蛇为",
+    options: ["银环蛇", "五步蛇", "竹叶青蛇", "蝰蛇"],
+    answer: "A",
+    explanation: "银环蛇主要分泌神经毒素，可导致神经系统症状"
+},
+{
+    id: 32,
+    question: "分泌混合毒素的毒蛇为",
+    options: ["金环蛇", "海蛇", "眼镜蛇", "五步蛇"],
+    answer: "C",
+    explanation: "眼镜蛇分泌的是混合毒素，包含神经毒素和血液毒素"
+},
+{
+    id: 33,
+    question: "关于河豚鱼中毒，哪项不是其治疗方法",
+    options: ["催吐、洗胃、导泻", "1%盐酸士的宁肌注或皮下注射", "呼吸麻痹时可实施机械通气", "碳酸氢钠静滴"],
+    answer: "D",
+    explanation: "河豚鱼中毒的治疗不包括碳酸氢钠静滴"
+},
+{
+    id: 34,
+    question: "女性，24岁，食用鱼片干及啤酒后出现恶心、呕吐，数小时后诉唇麻、四肢无力，不久呼吸困难，昏迷。最可能的诊断是",
+    options: ["急性酒精中毒", "河豚鱼中毒", "肉毒杆菌中毒", "过敏性休克"],
+    answer: "B",
+    explanation: "河豚鱼中毒的典型表现：麻痹症状由轻到重逐渐加重"
+},
+{
+    id: 35,
+    question: "以下哪项不是重度一氧化碳中毒患者常见并发症",
+    options: ["休克", "呼吸衰竭", "脑水肿", "急性心肌梗死"],
+    answer: "D",
+    explanation: "急性心肌梗死不是一氧化碳中毒的常见并发症"
+},
+{
+    id: 36,
+    question: "以下哪项方法不适合治疗急性一氧化碳中毒",
+    options: ["高压氧舱", "脱水", "改善脑代谢", "输鲜血浆"],
+    answer: "D",
+    explanation: "输鲜血浆对一氧化碳中毒的治疗无特殊意义"
+},
+{
+    id: 37,
+    question: "中度一氧化碳中毒，其血液碳氧血红蛋白浓度大约在",
+    options: ["10%～30%", "30%～50%", "50%～70%", "5%～10%"],
+    answer: "B",
+    explanation: "中度一氧化碳中毒的COHb浓度在30%～50%之间"
+},
+{
+    id: 38,
+    question: "洗胃液的温度最好选择在",
+    options: ["32～37℃", "4℃左右", "37～40℃", "21～24℃"],
+    answer: "A",
+    explanation: "洗胃液温度以32～37℃为宜，接近体温可减少不适"
+},
+{
+    id: 39,
+    question: "慢性酒精中毒常见合并症不包括",
+    options: ["慢性胃炎", "酒精性肝硬化", "周围神经炎", "精神分裂症"],
+    answer: "D",
+    explanation: "精神分裂症不是酒精中毒的直接并发症"
+},
+{
+    id: 40,
+    question: "百草枯中毒的主要致死原因为",
+    options: ["进行性肺纤维化", "急性肾功能衰竭", "中毒性肝损害", "中毒性心肌炎"],
+    answer: "A",
+    explanation: "百草枯可导致进行性肺纤维化，是主要死因"
+},
+{
+    id: 41,
+    question: "院前急救处理病人时遵循从___的顺序最为可靠",
+    options: ["躯干到四肢", "头到脚", "哪里出血先处理哪里", "个人习惯"],
+    answer: "B",
+    explanation: "从头到脚的检查顺序最系统可靠，不会遗漏重要部位"
+},
+{
+    id: 42,
+    question: "对创伤急救来讲，病人的生命取决于我们是否很好地处理了___步骤",
+    options: ["关键的", "所有的", "一般的", "全部的"],
+    answer: "A",
+    explanation: "处理好关键步骤（如气道、呼吸、循环）是挽救生命的关键"
+},
+{
+    id: 43,
+    question: "由于固定韧带的牵拉，下列哪个器官的损伤很常见",
+    options: ["肺脏", "胆囊", "脾脏", "阑尾"],
+    answer: "C",
+    explanation: "脾脏有固定韧带，在外力作用下易发生损伤"
+},
+{
+    id: 44,
+    question: "挤压伤不常发生于",
+    options: ["肺", "心", "膈肌", "空虚的膀胱"],
+    answer: "D",
+    explanation: "空虚的膀胱位置深，且无内容物，不易发生挤压伤"
+},
+{
+    id: 45,
+    question: "跌落伤的机制是___的剧烈减速",
+    options: ["水平方面", "垂直方面", "旋转方面", "抛物线性的"],
+    answer: "B",
+    explanation: "跌落伤主要是垂直方向的急剧减速导致"
+},
+{
+    id: 46,
+    question: "跌落伤伤势不取决于下列哪个因素",
+    options: ["跌落的高度", "撞击地面的部位", "地面的形态", "跌落者的体重"],
+    answer: "D",
+    explanation: "跌落伤的严重程度主要与高度和着地方式有关，与体重关系不大"
+},
+{
+    id: 47,
+    question: "刀伤中，第___肋间以下的胸外伤也会累及腹腔脏器",
+    options: ["二", "三", "四", "五"],
+    answer: "C",
+    explanation: "第四肋间以下的胸部创伤可能同时损伤腹腔脏器"
+},
+{
+    id: 48,
+    question: "爆炸伤中由气体冲击造成的损伤哪项不常见",
+    options: ["膈膜破裂", "气胸", "胃肠道的损伤", "骨折"],
+    answer: "D",
+    explanation: "爆炸气体冲击主要导致空腔脏器损伤，骨折较少见"
+},
+{
+    id: 49,
+    question: "刀伤的处理，重要原则是",
+    options: ["不要取出刺入体内的刀具", "取出刺入体内的刀具", "快速输液", "包扎伤口"],
+    answer: "A",
+    explanation: "刺入物起到止血作用，贸然取出可能加重出血"
+},
+{
+    id: 50,
+    question: "在抢救现场或伤员刚送到急诊室时应",
+    options: ["病史采集", "全面而详细的检查", "迅速判断有无威胁生命的征象", "等待检查结果"],
+    answer: "C",
+    explanation: "首先要判断是否存在威胁生命的情况，确保生命安全"
+},
+{
+    id: 51,
+    question: "现场复苏成功的判断依据为",
+    options: ["大动脉搏动扪及", "心电图表现为心室纤维颤动", "自主循环恢复", "呼吸恢复"],
+    answer: "C",
+    explanation: "自主循环恢复是现场复苏成功的最重要标志"
+},
+{
+    id: 52,
+    question: "急救人员到达创伤现场后，首要的任务是",
+    options: ["安全地运送", "除去正在威胁病人生命的因素", "骨折固定", "包扎伤口"],
+    answer: "B",
+    explanation: "首要任务是排除威胁生命的因素，确保生命体征稳定"
+},
+{
+    id: 53,
+    question: "创伤病人再估计的重点有",
+    options: ["腹膜后脏器的损伤", "继发颅内、胸腹腔内出血", "以上都是", "其他部位损伤"],
+    answer: "C",
+    explanation: "隐匿性损伤和继发性出血都是再估计的重点"
+},
+{
+    id: 54,
+    question: "导致多发伤病人死亡的首要因素是",
+    options: ["颅脑损伤", "胸部损伤", "四肢骨盆、脊柱脊髓损伤", "腹部损伤"],
+    answer: "A",
+    explanation: "颅脑损伤是多发伤患者最主要的死亡原因"
+},
+{
+    id: 55,
+    question: "插入口咽管时开放气道的方法哪些是错误的",
+    options: ["上抬下巴", "舌头牵拉器", "喉镜", "用Scissor方法"],
+    answer: "C",
+    explanation: "插入口咽管不需要使用喉镜，喉镜用于气管插管"
+}
+        ];
+
+        let currentMode = null;
+        let currentQuestions = [];
+        let currentQuestion = 0;
+        let answers = [];
+        let wrongQuestions = new Set();
+
+        function showHome() {
+            document.getElementById('homeMenu').style.display = 'block';
+            document.getElementById('quizContent').style.display = 'none';
+            currentMode = null;
+            currentQuestion = 0;
+        }
+
+        function startRandomMode() {
+            currentMode = 'random';
+            currentQuestions = shuffleArray([...questions]);
+            currentQuestions = currentQuestions.slice(0, 10); // 每次随机10题
+            initQuiz();
+        }
+
+        function startWrongMode() {
+            if (wrongQuestions.size === 0) {
+                alert('暂无错题记录！');
+                return;
+            }
+            currentMode = 'wrong';
+            currentQuestions = questions.filter(q => wrongQuestions.has(q.id));
+            initQuiz();
+        }
+
+        function initQuiz() {
+            currentQuestion = 0;
+            answers = new Array(currentQuestions.length).fill('');
+            document.getElementById('homeMenu').style.display = 'none';
+            document.getElementById('quizContent').style.display = 'block';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+    const question = currentQuestions[currentQuestion];
+    const container = document.getElementById('questionContainer');
+    
+    const optionsHtml = question.options.map((option, index) => `
+        <label>
+            <input type="radio" name="answer" value="${String.fromCharCode(65 + index)}">
+            ${String.fromCharCode(65 + index)}. ${option}
+        </label>
+    `).join('');
+
+    container.innerHTML = `
+        <h3>第${currentQuestion + 1}/${currentQuestions.length}题 (ID: ${question.id})</h3>
+        <p>${question.question}</p>
+        <div class="options">${optionsHtml}</div>
+        <div id="feedback" style="display: none;"></div>
+    `;
+
+    document.getElementById('prev').disabled = currentQuestion === 0;
+    document.getElementById('next').style.display = currentQuestion === currentQuestions.length - 1 ? 'none' : 'inline';
+    document.getElementById('submit').style.display = currentQuestion === currentQuestions.length - 1 ? 'inline' : 'none';
+
+    // 如果在随机模式下且已答题，显示答案
+    if (currentMode === 'random' && answers[currentQuestion]) {
+        showAnswer();
+    }
+}
+
+function showAnswer() {
+    const question = currentQuestions[currentQuestion];
+    const feedback = document.getElementById('feedback');
+    const isCorrect = answers[currentQuestion] === question.answer;
+    
+    if (!isCorrect) {
+        wrongQuestions.add(question.id);
+    }
+
+    feedback.innerHTML = `
+        <div class="${isCorrect ? 'correct' : 'incorrect'}">
+            <p>${isCorrect ? '正确！' : '错误！'}</p>
+            <p>正确答案：${question.answer}. ${question.options[question.answer.charCodeAt(0) - 65]}</p>
+            <p>解释：${question.explanation}</p>
+        </div>
+    `;
+    feedback.style.display = 'block';
+}
+        function showAnswer() {
+            const question = currentQuestions[currentQuestion];
+            const feedback = document.getElementById('feedback');
+            const isCorrect = answers[currentQuestion] === question.answer;
+            
+            if (!isCorrect) {
+                wrongQuestions.add(question.id);
+            }
+
+            feedback.innerHTML = `
+                <div class="${isCorrect ? 'correct' : 'incorrect'}">
+                    <p>${isCorrect ? '正确！' : '错误！'}</p>
+                    <p>正确答案：${question.answer}</p>
+                    <p>解释：${question.explanation}</p>
+                </div>
+            `;
+            feedback.style.display = 'block';
+        }
+
+        function handleAnswer(event) {
+            if (event.target.name === 'answer') {
+                answers[currentQuestion] = event.target.value;
+                if (currentMode === 'random') {
+                    showAnswer();
+                }
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                displayQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < currentQuestions.length - 1) {
+                currentQuestion++;
+                displayQuestion();
+            }
+        }
+
+        function showSummary() {
+            const correct = answers.filter((answer, index) => 
+                answer === currentQuestions[index].answer
+            ).length;
+            const total = currentQuestions.length;
+            const percentage = (correct / total * 100).toFixed(1);
+
+            document.getElementById('questionContainer').innerHTML = `
+                <div class="summary">
+                    <h2>测试结果</h2>
+                    <div class="stats">
+                        <p>总题数：${total}</p>
+                        <p>正确数：${correct}</p>
+                        <p>正确率：${percentage}%</p>
+                    </div>
+                    <button class="btn" onclick="showHome()">返回主页</button>
+                </div>
+            `;
+            document.getElementById('prev').style.display = 'none';
+            document.getElementById('next').style.display = 'none';
+            document.getElementById('submit').style.display = 'none';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+           // 添加清除缓存功能
+           function clearAllCache() {
+            if (confirm('确定要清除所有记录吗？此操作将清除错题记录等所有数据。')) {
+                // 清除错题记录
+                wrongQuestions.clear();
+                // 清除本地存储
+                localStorage.clear();
+                // 重置当前状态
+                currentQuestions = [];
+                currentQuestion = 0;
+                answers = [];
+                // 提示用户
+                alert('缓存已清除');
+                // 返回主页
+                showHome();
+            }
+        }
+            // 添加错题记录的持久化存储
+            window.addEventListener('load', () => {
+                        const savedWrongQuestions = localStorage.getItem('wrongQuestions');
+                        if (savedWrongQuestions) {
+                            wrongQuestions = new Set(JSON.parse(savedWrongQuestions));
+                        }
+                    });
+
+                    // 修改记录错题的方法
+                    function saveWrongQuestion(questionId) {
+                        wrongQuestions.add(questionId);
+                        localStorage.setItem('wrongQuestions', JSON.stringify([...wrongQuestions]));
+                    }
+
+                    // 添加事件监听
+                    document.getElementById('questionContainer').addEventListener('change', handleAnswer);
+
+                    // 初始显示主页
+                    showHome();
+    </script>
+</body>
+</html>
+
